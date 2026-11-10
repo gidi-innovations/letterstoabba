@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#123a75">
+<meta name="description" content="A private prayer journal. Write letters to Abba and remember how He answers.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Abba">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Letters to Abba</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+<script type="module" src="app.js"></script>
+</head>
+<body>
+
+<noscript><p class="noscript">Letters to Abba needs JavaScript turned on.</p></noscript>
+
+<!-- ============ SETUP ============ -->
+<section id="view-setup" class="view center hidden" aria-labelledby="setupTitle">
+  <div class="card narrow">
+    <div id="setup1" class="step">
+      <h1 class="script big" id="setupTitle">Letters to Abba</h1>
+      <p class="lead">Write to Abba. Keep track of how He answers.<br><strong>Only you can read your letters.</strong></p>
+      <p class="verse">“Ye have received the Spirit of adoption, whereby we cry, Abba, Father.”<span>Romans 8:15</span></p>
+      <ul class="ticks">
+        <li>Works without internet once installed</li>
+        <li>Every letter is locked with your own passphrase</li>
+        <li>No accounts, no tracking — nothing leaves your device</li>
+      </ul>
+      <button class="btn wide" id="setupStart">Begin</button>
+      <button class="link" id="setupRestore">I have a backup file to restore</button>
+    </div>
+
+    <form id="setup2" class="step hidden" autocomplete="off">
+      <h2 class="script">Choose a passphrase</h2>
+      <p class="muted">This unlocks your journal. Use a few words you'll remember, like a short sentence.</p>
+      <label for="pass1">Passphrase</label>
+      <input type="password" id="pass1" minlength="8" required autocomplete="new-password">
+      <div class="meter"><div id="meterBar"></div></div>
+      <div class="muted small" id="meterText">At least 8 characters</div>
+      <label for="pass2">Type it again</label>
+      <input type="password" id="pass2" required autocomplete="new-password">
+      <div class="warn">If you forget your passphrase <strong>and</strong> lose your recovery key, your letters cannot be recovered — not even by us.</div>
+      <div class="err hidden" id="setupErr"></div>
+      <div class="row-end"><button type="button" class="btn ghost" id="setupBack">Back</button><button class="btn" id="setupNext">Continue</button></div>
+    </form>
+
+    <div id="setup3" class="step hidden">
+      <h2 class="script">Your recovery key</h2>
+      <p class="muted">If you ever forget your passphrase, this key is the only way back in. Write it down and keep it somewhere safe.</p>
+      <div class="recovery" id="recoveryKey"></div>
+      <button class="btn ghost sm" id="copyRecovery">Copy key</button>
+      <label class="check"><input type="checkbox" id="savedKey"> I have saved my recovery key</label>
+      <button class="btn wide" id="setupFinish" disabled>Open my journal</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LOCK ============ -->
+<section id="view-lock" class="view center hidden" aria-labelledby="lockTitle">
+  <form class="card narrow" id="lockForm" autocomplete="off">
+    <h1 class="script big" id="lockTitle">Letters to Abba</h1>
+    <p class="muted center-text">Your journal is locked.</p>
+    <label for="lockPass" id="lockLabel">Passphrase</label>
+    <input type="password" id="lockPass" required autocomplete="current-password">
+    <div class="err hidden" id="lockErr"></div>
+    <button class="btn wide" id="unlockBtn">Unlock</button>
+    <div class="center-text"><button type="button" class="link" id="useRecovery">Forgot passphrase? Use recovery key</button></div>
+  </form>
+  <button class="help-link" data-help>Need to talk to someone?</button>
+</section>
+
+<!-- ============ MAIN APP ============ -->
+<section id="view-app" class="view hidden">
+  <header class="top">
+    <div>
+      <h1 class="script">Letters to Abba</h1>
+      <div class="tag">“Casting all your care upon him; for he careth for you.” — 1 Peter 5:7</div>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="newBtn">✎ Write a letter</button>
+      <button class="btn ghost sm" id="lockBtn" title="Lock journal">🔒 Lock</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="letters" class="on">Letters</button>
+    <button role="tab" data-tab="timeline">Testimonies</button>
+    <button role="tab" data-tab="settings">Settings</button>
+  </nav>
+
+  <div id="banner" class="banner hidden"></div>
+
+  <!-- Letters tab -->
+  <div id="tab-letters" class="tab">
+    <div class="votd" id="votd"></div>
+    <div id="onThisDay" class="otd hidden"></div>
+
+    <section class="stats" aria-label="Summary">
+      <div class="stat"><div class="n" id="sTotal">0</div><div class="l">Letters</div></div>
+      <div class="stat s-ans"><div class="n" id="sAns">0</div><div class="l">Answered</div></div>
+      <div class="stat s-wait"><div class="n" id="sWait">0</div><div class="l">Still waiting</div></div>
+      <div class="stat s-sur"><div class="n" id="sSur">0</div><div class="l">Surrendered</div></div>
+    </section>
+
+    <div class="toolbar">
+      <select id="fStatus" aria-label="Filter by status">
+        <option value="all">All letters</option>
+        <option value="waiting">Still waiting</option>
+        <option value="answered">Answered</option>
+        <option value="different">Answered differently</option>
+        <option value="surrendered">Surrendered</option>
+      </select>
+      <select id="fCategory" aria-label="Filter by category"><option value="all">All categories</option></select>
+      <input type="search" id="search" placeholder="Search your letters…" aria-label="Search">
+      <select id="sort" aria-label="Sort"><option value="new">Newest first</option><option value="old">Oldest first</option></select>
+    </div>
+    <div id="list" class="list"></div>
+  </div>
+
+  <!-- Timeline tab -->
+  <div id="tab-timeline" class="tab hidden">
+    <div class="timeline-head">
+      <h2 class="script">How He answered</h2>
+      <button class="btn ghost sm" id="printBook">📖 Book of Remembrance (PDF)</button>
+    </div>
+    <p class="muted">“Hitherto hath the LORD helped us.” — 1 Samuel 7:12</p>
+    <div id="timeline" class="timeline"></div>
+  </div>
+
+  <!-- Settings tab -->
+  <div id="tab-settings" class="tab hidden">
+    <div class="settings">
+      <section class="card">
+        <h3>Backup</h3>
+        <p class="muted" id="backupInfo"></p>
+        <div class="row-wrap">
+          <button class="btn" id="backupBtn">Download backup</button>
+          <button class="btn ghost" id="restoreBtn">Restore from backup</button>
+        </div>
+        <p class="muted small">Backups are encrypted. Keep one somewhere safe (Google Drive, email to yourself) so a lost or reset phone never costs you your letters.</p>
+      </section>
+
+      <section class="card">
+        <h3>Security</h3>
+        <div class="row-wrap">
+          <button class="btn ghost" id="changePassBtn">Change passphrase</button>
+          <button class="btn ghost" id="newRecoveryBtn">Make a new recovery key</button>
+        </div>
+        <label for="autoLock">Lock automatically after</label>
+        <select id="autoLock">
+          <option value="1">1 minute</option><option value="5">5 minutes</option><option value="15">15 minutes</option><option value="30">30 minutes</option>
+        </select>
+        <p class="muted small" id="persistInfo"></p>
+      </section>
+
+      <section class="card">
+        <h3>Appearance</h3>
+        <label for="theme">Theme</label>
+        <select id="theme"><option value="light">Light (blue &amp; white)</option><option value="dark">Dark (night prayer)</option><option value="auto">Match my device</option></select>
+        <label for="textSize">Text size</label>
+        <select id="textSize"><option value="s">Small</option><option value="m">Medium</option><option value="l">Large</option></select>
+      </section>
+
+      <section class="card">
+        <h3>Export</h3>
+        <p class="muted small">A plain-text copy is <strong>not encrypted</strong> — anyone who finds the file can read it.</p>
+        <button class="btn ghost" id="exportTxt">Download as plain text</button>
+      </section>
+
+      <section class="card">
+        <h3>About &amp; privacy</h3>
+        <button class="btn ghost" data-privacy>How your letters are kept safe</button>
+        <button class="btn ghost" data-help>Need to talk to someone?</button>
+      </section>
+
+      <section class="card danger-zone">
+        <h3>Delete everything</h3>
+        <p class="muted small">Removes all letters and keys from this device. Make a backup first if you might want them back.</p>
+        <button class="btn danger" id="wipeBtn">Delete all data on this device</button>
+      </section>
+    </div>
+  </div>
+
+  <footer class="foot-note">
+    <button class="help-link inline" data-help>Need to talk to someone?</button>
+    <span>Letters to Abba · private &amp; offline · Made by GIDI</span>
+  </footer>
+</section>
+
+<!-- ============ DIALOGS ============ -->
+<dialog id="dlgWrite" aria-labelledby="writeTitle">
+  <form id="writeForm" method="dialog" autocomplete="off">
+    <h2 class="script" id="writeTitle">Dear Abba…</h2>
+    <p class="muted small">Only you can read what you write here. Your draft saves itself as you type. Tip: to speak instead of type, use the microphone on your phone's keyboard.</p>
+    <label for="wTitle">What this letter is about</label>
+    <input id="wTitle" maxlength="120" required placeholder="e.g. Healing for Mum, guidance on the new job">
+    <div class="grid2">
+      <div><label for="wDate">Date written</label><input type="date" id="wDate" required></div>
+      <div><label for="wCat">Category</label><select id="wCat"></select></div>
+    </div>
+    <div class="label-row">
+      <label for="wBody">Your letter</label>
+      <span>
+        <button type="button" class="chip" id="promptBtn">Need words?</button>
+      </span>
+    </div>
+    <div id="prompts" class="prompts hidden">
+      <button type="button" class="chip" data-p="Abba, I praise You because ">Adoration</button>
+      <button type="button" class="chip" data-p="Abba, forgive me for ">Confession</button>
+      <button type="button" class="chip" data-p="Thank You, Abba, for ">Thanksgiving</button>
+      <button type="button" class="chip" data-p="Abba, I ask You for ">Supplication</button>
+    </div>
+    <textarea id="wBody" class="paper" required></textarea>
+    <div class="suggest" id="catVerse"></div>
+    <label for="wVerse">A verse I'm standing on (optional)</label>
+    <input id="wVerse" maxlength="200" placeholder="e.g. Philippians 4:6–7">
+    <label for="wFor">Praying for (optional)</label>
+    <input id="wFor" maxlength="200" placeholder="e.g. Mum, Aunty Fatu">
+    <div class="row-end">
+      <button type="button" class="btn ghost" data-close>Close</button>
+      <button class="btn" id="saveLetter">Seal letter</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgStatus" aria-labelledby="statusTitle">
+  <form id="statusForm" method="dialog">
+    <h2 class="script" id="statusTitle">He answered</h2>
+    <p class="muted" id="statusSub"></p>
+    <div id="statusDateWrap"><label for="sDate">Date</label><input type="date" id="sDate" required></div>
+    <label for="sNote" id="sNoteLabel">How He answered (your testimony)</label>
+    <textarea id="sNote" class="note" placeholder="Write down what happened so you never forget…"></textarea>
+    <div class="row-end">
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button class="btn" id="statusSave">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgConfirm" aria-labelledby="confirmTitle">
+  <form method="dialog">
+    <h2 class="script" id="confirmTitle">Are you sure?</h2>
+    <p class="muted" id="confirmText"></p>
+    <div id="confirmTypeWrap" class="hidden"><label for="confirmType" id="confirmTypeLabel"></label><input id="confirmType" autocomplete="off"></div>
+    <div class="row-end">
+      <button type="button" class="btn ghost" data-close>Cancel</button>
+      <button type="button" class="btn danger" id="confirmOk">Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgPass" aria-labelledby="passTitle">
+  <form id="passForm" method="dialog" autocomplete="off">
+    <h2 class="script" id="passTitle">Change passphrase</h2>
+    <p class="muted small" id="passSub"></p>
+    <div id="passOldWrap"><label for="passOld" id="passOldLabel">Current passphrase</label><input type="password" id="passOld" autocomplete="current-password"></div>
+    <div id="passNewWrap">
+      <label for="passNew1">New passphrase</label><input type="password" id="passNew1" minlength="8" autocomplete="new-password">
+      <label for="passNew2">Type it again</label><input type="password" id="passNew2" autocomplete="new-password">
+    </div>
+    <div class="err hidden" id="passErr"></div>
+    <div class="row-end">
+      <button type="button" class="btn ghost" data-close id="passCancel">Cancel</button>
+      <button class="btn" id="passSave">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgRecoveryShow" aria-labelledby="recShowTitle">
+  <form method="dialog">
+    <h2 class="script" id="recShowTitle">Your new recovery key</h2>
+    <p class="muted small">Your old recovery key no longer works. Write this one down and keep it safe.</p>
+    <div class="recovery" id="recoveryKey2"></div>
+    <div class="row-end"><button type="button" class="btn ghost sm" id="copyRecovery2">Copy key</button><button class="btn">I've saved it</button></div>
+  </form>
+</dialog>
+
+<dialog id="dlgPage" aria-labelledby="pageTitle">
+  <form method="dialog">
+    <div id="pageBody"></div>
+    <div class="row-end"><button class="btn">Close</button></div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+<div id="printArea" class="print-only" aria-hidden="true"></div>
+<input type="file" id="restoreFile" accept=".abba,application/json" class="hidden">
+</body>
+</html>

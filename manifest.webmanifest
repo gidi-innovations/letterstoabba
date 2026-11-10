@@ -1,0 +1,16 @@
+{
+  "name": "Letters to Abba",
+  "short_name": "Abba",
+  "description": "A private prayer journal. Write letters to Abba and remember how He answers.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#eef4fc",
+  "theme_color": "#123a75",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
